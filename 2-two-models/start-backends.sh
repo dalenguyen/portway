@@ -37,6 +37,8 @@ llama-server \
   --port 8010 \
   --host 127.0.0.1 \
   --ctx-size 8192 \
+  --jinja \
+  --reasoning-format auto \
   >logs/gpt-oss.log 2>&1 &
 echo $! >"$PID_FILE_GPT"
 echo "gpt-oss   pid=$(cat $PID_FILE_GPT) port=8010 log=logs/gpt-oss.log"
@@ -49,6 +51,8 @@ llama-server \
   --port 8011 \
   --host 127.0.0.1 \
   --ctx-size 8192 \
+  --jinja \
+  --reasoning-format auto \
   >logs/qwen3.5.log 2>&1 &
 echo $! >"$PID_FILE_QWEN"
 echo "qwen3.5   pid=$(cat $PID_FILE_QWEN) port=8011 log=logs/qwen3.5.log"
