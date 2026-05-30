@@ -1,0 +1,6 @@
+[project]
+name = "1-local-first"
+version = "0.1.0"
+description = "Post 1 — Local-first: a single model on your own machine, zero cloud."
+requires-python = ">=3.11"
+dependencies = ["openai>=1.0"]
