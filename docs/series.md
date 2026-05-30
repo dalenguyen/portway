@@ -68,14 +68,14 @@ vllm serve openai/gpt-oss-20b \
 ```bash
 # llama.cpp ships an OpenAI-compatible server
 ./llama-server -hf <qwen3.5-or-gpt-oss-GGUF-repo> \
-  --port 8000 --ctx-size 32768 --alias gpt-oss
+  --port 8010 --ctx-size 32768 --alias gpt-oss
 # NOTE: use llama.cpp (not Ollama) for Qwen3.5 — its vision GGUFs currently misbehave in Ollama.
 ```
 
 **Call it** — there is no "session"; you send the whole `messages` array every time:
 ```python
 from openai import OpenAI
-client = OpenAI(base_url="http://localhost:8000/v1", api_key="sk-local-001")
+client = OpenAI(base_url="http://localhost:8010/v1", api_key="sk-local-001")
 r = client.chat.completions.create(
     model="gpt-oss",
     messages=[{"role":"user","content":"Name three Canadian cities."}])
@@ -86,7 +86,7 @@ print(r.usage)   # prompt/completion/total tokens — your future bill, even loc
 **Things that will bite:**
 - **`--max-model-len` / `--ctx-size` sizes the KV cache.** Leave it at the model's 256K default and VRAM/RAM vanishes. Cap it.
 - **gpt-oss emits a reasoning channel** (Harmony format). The engine applies the template automatically; you still get a normal `message.content`. Note it now — we segregate it in Post 3.
-- If a full model won't fit, **drop to a smaller Qwen3.5 (4B/2B)** just to exercise the plumbing. The point of Post 1 is the contract, not the model.
+- If a full model won't fit, **drop to a smaller Qwen3.5 (4B/2B)** just to exercise the plumbing. The point of [Post 1](./1%20-%20Local-first:%20a%20model%20on%20your%20own%20machine,%20zero%20cloud.md) is the contract, not the model.
 
 **Definition of Done** — Cost: $0
 - [ ] OpenAI SDK round-trips against `localhost`
@@ -111,17 +111,17 @@ print(r.usage)   # prompt/completion/total tokens — your future bill, even loc
 ```bash
 # two vLLM processes, two ports, shared GPU — split the memory budget
 CUDA_VISIBLE_DEVICES=0 vllm serve openai/gpt-oss-20b \
-  --served-model-name gpt-oss --port 8000 \
+  --served-model-name gpt-oss --port 8010 \
   --max-model-len 16384 --gpu-memory-utilization 0.55
 CUDA_VISIBLE_DEVICES=0 vllm serve Qwen/Qwen3.5-4B \
-  --served-model-name qwen3.5 --port 8001 \
+  --served-model-name qwen3.5 --port 8011 \
   --max-model-len 16384 --gpu-memory-utilization 0.35
 ```
 
 **Landmines:** `--gpu-memory-utilization` is how you stop co-located processes from fighting. Qwen3.5 is natively multimodal — ignore image inputs if you only need text. Stay on vLLM/llama.cpp, not Ollama, for Qwen3.5.
 
 **Definition of Done** — Cost: $0
-- [ ] Both `:8000/v1/models` and `:8001/v1/models` report their served names
+- [ ] Both `:8010/v1/models` and `:8011/v1/models` report their served names
 - [ ] Both answer chat completions
 - [ ] The machine doesn't OOM under a few concurrent requests
 
@@ -138,9 +138,9 @@ CUDA_VISIBLE_DEVICES=0 vllm serve Qwen/Qwen3.5-4B \
 # config.yaml
 model_list:
   - model_name: gpt-oss
-    litellm_params: { model: hosted_vllm/gpt-oss, api_base: http://127.0.0.1:8000/v1, api_key: sk-local-001 }
+    litellm_params: { model: hosted_vllm/gpt-oss, api_base: http://127.0.0.1:8010/v1, api_key: sk-local-001 }
   - model_name: qwen3.5
-    litellm_params: { model: hosted_vllm/qwen3.5, api_base: http://127.0.0.1:8001/v1, api_key: sk-local-001 }
+    litellm_params: { model: hosted_vllm/qwen3.5, api_base: http://127.0.0.1:8011/v1, api_key: sk-local-001 }
 ```
 ```bash
 litellm --config config.yaml --port 4000   # clients now point at :4000
@@ -235,7 +235,7 @@ Miss this and your streamed traffic — most of it — bills as zero.
 
 **Load test locally:**
 ```bash
-vllm bench serve --model gpt-oss --base-url http://localhost:8000 \
+vllm bench serve --model gpt-oss --base-url http://localhost:8010 \
   --request-rate 4 --num-prompts 200
 ```
 Sweep concurrency until p95 TTFT degrades — that knee is your per-replica capacity *on this hardware*. You'll learn your local ceiling, which tells you exactly what you'd need to rent later (Post 9).

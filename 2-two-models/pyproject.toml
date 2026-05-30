@@ -1,0 +1,6 @@
+[project]
+name = "2-two-models"
+version = "0.1.0"
+description = "Post 2 — Two models locally, and the art of placing them."
+requires-python = ">=3.11"
+dependencies = ["openai>=1.0"]

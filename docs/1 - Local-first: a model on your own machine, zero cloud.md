@@ -4,6 +4,8 @@
 
 This walkthrough is the concrete, runnable counterpart to Post 1 in [`series.md`](./series.md). Everything here runs locally for $0.
 
+Next: [Post 2 — Two models locally, and the art of placing them](./2%20-%20Two%20models%20locally,%20and%20the%20art%20of%20placing%20them.md) →
+
 ## What's in this post
 
 - `1-local-first/demo.py` — two blocks:
@@ -14,7 +16,7 @@ This walkthrough is the concrete, runnable counterpart to Post 1 in [`series.md`
 
 Apple Silicon Mac, 48 GB unified memory, **Ollama** already installed. We use Ollama's OpenAI-compatible endpoint at `http://localhost:11434/v1` and the `gpt-oss:20b` model (~14 GB).
 
-> The wider series uses `llama.cpp` on Mac (Ollama is called out as problematic for Qwen3.5 in Post 2). For Post 1 — one model, prove the contract — Ollama is fine and already on the box.
+> The wider series uses `llama.cpp` on Mac (Ollama is called out as problematic for Qwen3.5 in [Post 2](./2%20-%20Two%20models%20locally,%20and%20the%20art%20of%20placing%20them.md)). For Post 1 — one model, prove the contract — Ollama is fine and already on the box.
 
 ### Smaller machines (~9 GB RAM)
 

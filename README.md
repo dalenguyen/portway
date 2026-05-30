@@ -51,8 +51,8 @@ curl http://localhost:4000/v1/chat/completions \
 
 Built step-by-step — check each post off as it ships.
 
-- [x] **Post 1** — Local-first: a model on your own machine, zero cloud *(no cloud · $0)*
-- [ ] **Post 2** — Two models locally, and the art of placing them *(no cloud · $0)*
+- [x] [**Post 1** — Local-first: a model on your own machine, zero cloud](./docs/1%20-%20Local-first:%20a%20model%20on%20your%20own%20machine,%20zero%20cloud.md) *(no cloud · $0)*
+- [x] [**Post 2** — Two models locally, and the art of placing them](./docs/2%20-%20Two%20models%20locally,%20and%20the%20art%20of%20placing%20them.md) *(no cloud · $0)*
 - [ ] **Post 3** — The gateway: route by model name *(no cloud · $0)*
 - [ ] **Post 4** — Auth, API keys, and per-key model scoping *(no cloud · $0)*
 - [ ] **Post 5** — Token tracking & metering *(no cloud · $0)*
