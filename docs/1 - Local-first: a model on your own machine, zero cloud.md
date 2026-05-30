@@ -16,13 +16,27 @@ Apple Silicon Mac, 48 GB unified memory, **Ollama** already installed. We use Ol
 
 > The wider series uses `llama.cpp` on Mac (Ollama is called out as problematic for Qwen3.5 in Post 2). For Post 1 — one model, prove the contract — Ollama is fine and already on the box.
 
+### Smaller machines (~9 GB RAM)
+
+`gpt-oss:20b` needs roughly 16 GB free to load comfortably. On a machine with as little as ~9 GB of memory, swap in one of these and the rest of the walkthrough is unchanged — the OpenAI contract is identical:
+
+| Model           | Size on disk | Working RAM | Pull                          |
+| --------------- | ------------ | ----------- | ----------------------------- |
+| `llama3.2:3b`   | ~2.0 GB      | ~4 GB       | `ollama pull llama3.2:3b`     |
+| `qwen2.5:3b`    | ~1.9 GB      | ~4 GB       | `ollama pull qwen2.5:3b`      |
+
+Both leave headroom for the OS and your editor on a 9 GB box.
+
 ## Prerequisites
 
 - [Ollama](https://ollama.com) running locally (`curl -s http://localhost:11434/api/tags` should return JSON)
 - [uv](https://docs.astral.sh/uv/) installed (`uv --version`)
-- The `gpt-oss:20b` model pulled:
+- One model pulled — either the default or a small alternative:
   ```bash
-  ollama pull gpt-oss:20b
+  ollama pull gpt-oss:20b      # default (~14 GB on disk, ~16 GB RAM)
+  # or, for ~9 GB machines:
+  ollama pull llama3.2:3b
+  ollama pull qwen2.5:3b
   ```
 
 ## Run it
@@ -32,6 +46,9 @@ From the repo root:
 ```bash
 uv sync                                  # creates .venv at root, installs deps
 uv run --project 1-local-first python 1-local-first/demo.py
+
+# Smaller machine? Override the model via env var:
+MODEL=llama3.2:3b uv run --project 1-local-first python 1-local-first/demo.py
 ```
 
 ## Sample output
@@ -63,7 +80,7 @@ client re-sent the full history in the request body. Each call is
 evaluated from scratch — history is the client's responsibility.
 ```
 
-`completion_tokens` and the response text will vary run-to-run (sampling is non-deterministic at default temperature). `prompt_tokens` for the same input is deterministic — 75 and 139 should reproduce. Notice how the 5-turn response picks up the road-trip context ("located in the province of Ontario") while the 1-turn answer riffs on the bare "Driving." in its prompt — same model, different framing in the client-supplied messages.
+`completion_tokens` and the response text will vary run-to-run (sampling is non-deterministic at default temperature). `prompt_tokens` for the same input is deterministic — 75 and 139 should reproduce **on `gpt-oss:20b`**. If you swapped to `llama3.2:3b` or `qwen2.5:3b`, you'll see different absolute numbers (different tokenizer) but the same shape: the 5-turn count is materially larger than the 1-turn count, because the client re-sent the history. Notice how the 5-turn response picks up the road-trip context ("located in the province of Ontario") while the 1-turn answer riffs on the bare "Driving." in its prompt — same model, different framing in the client-supplied messages.
 
 ## Definition of Done
 
