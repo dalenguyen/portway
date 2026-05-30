@@ -1,0 +1,8 @@
+[project]
+name = "portway"
+version = "0.0.0"
+description = "Self-hosted, run-anywhere gateway for local LLMs (build-along series)."
+requires-python = ">=3.11"
+
+[tool.uv.workspace]
+members = ["1-local-first"]
