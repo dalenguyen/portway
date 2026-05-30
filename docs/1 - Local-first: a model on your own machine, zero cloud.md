@@ -4,6 +4,8 @@
 
 This walkthrough is the concrete, runnable counterpart to Post 1 in [`series.md`](./series.md). Everything here runs locally for $0.
 
+Next: [Post 2 — Two models locally, and the art of placing them](./2%20-%20Two%20models%20locally,%20and%20the%20art%20of%20placing%20them.md) →
+
 ## What's in this post
 
 - `1-local-first/demo.py` — two blocks:

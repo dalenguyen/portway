@@ -4,6 +4,7 @@ requires-python = ">=3.11"
 [manifest]
 members = [
     "1-local-first",
+    "2-two-models",
     "portway",
 ]
 
@@ -11,6 +12,17 @@ members = [
 name = "1-local-first"
 version = "0.1.0"
 source = { virtual = "1-local-first" }
+dependencies = [
+    { name = "openai" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "openai", specifier = ">=1.0" }]
+
+[[package]]
+name = "2-two-models"
+version = "0.1.0"
+source = { virtual = "2-two-models" }
 dependencies = [
     { name = "openai" },
 ]

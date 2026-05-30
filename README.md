@@ -52,7 +52,7 @@ curl http://localhost:4000/v1/chat/completions \
 Built step-by-step — check each post off as it ships.
 
 - [x] **Post 1** — Local-first: a model on your own machine, zero cloud *(no cloud · $0)*
-- [ ] **Post 2** — Two models locally, and the art of placing them *(no cloud · $0)*
+- [x] **Post 2** — Two models locally, and the art of placing them *(no cloud · $0)*
 - [ ] **Post 3** — The gateway: route by model name *(no cloud · $0)*
 - [ ] **Post 4** — Auth, API keys, and per-key model scoping *(no cloud · $0)*
 - [ ] **Post 5** — Token tracking & metering *(no cloud · $0)*
