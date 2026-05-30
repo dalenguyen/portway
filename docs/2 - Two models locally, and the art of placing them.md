@@ -16,7 +16,7 @@ This walkthrough is the concrete, runnable counterpart to Post 2 in [`series.md`
 
 ## Engine choice on this machine
 
-Post 1 used **Ollama** for a single-model round-trip because that was the friction-free path. Post 2 switches to **llama.cpp** for two reasons:
+[Post 1](./1%20-%20Local-first:%20a%20model%20on%20your%20own%20machine,%20zero%20cloud.md) used **Ollama** for a single-model round-trip because that was the friction-free path. Post 2 switches to **llama.cpp** for two reasons:
 
 1. **Placement vocabulary.** Ollama's mental model is one server, many models swapped in and out (controlled by `OLLAMA_MAX_LOADED_MODELS`). That's a perfectly fine product, but it obscures the decision the series is teaching: *where does each model live, and what does it cost?* `llama-server` is the canonical one-process-per-model shape — same shape vLLM uses — so the lesson transfers cleanly to Post 3's router and beyond.
 2. **Series prescription.** `series.md` explicitly says "Stay on vLLM/llama.cpp, not Ollama, for Qwen3.5." Post 2 introduces Qwen3.5, so we adopt the prescribed tool here.
@@ -131,4 +131,4 @@ No OOM = the two co-located processes share unified memory cleanly.
 - **Pick any two free ports.** This post uses 8010/8011 — placement isn't about specific numbers, and the conventional 8000/8001 collide with whatever else you might already have running locally (MCP servers, dev proxies, the last container you forgot to stop). `lsof -i :PORT` before you commit to a port pair.
 - **First run is slow.** llama.cpp pulls each GGUF on first use. Tail the logs to watch progress; cached after.
 - **Concurrent ≠ parallel on one Metal device.** Six concurrent requests share the GPU; per-request latency rises vs. single-request. Expected. Post 7 owns proper throughput measurement.
-- **No streaming yet.** Same as Post 1 — Post 5 owns the `stream_options.include_usage` trap.
+- **No streaming yet.** Same as [Post 1](./1%20-%20Local-first:%20a%20model%20on%20your%20own%20machine,%20zero%20cloud.md) — Post 5 owns the `stream_options.include_usage` trap.

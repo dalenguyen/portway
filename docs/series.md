@@ -86,7 +86,7 @@ print(r.usage)   # prompt/completion/total tokens — your future bill, even loc
 **Things that will bite:**
 - **`--max-model-len` / `--ctx-size` sizes the KV cache.** Leave it at the model's 256K default and VRAM/RAM vanishes. Cap it.
 - **gpt-oss emits a reasoning channel** (Harmony format). The engine applies the template automatically; you still get a normal `message.content`. Note it now — we segregate it in Post 3.
-- If a full model won't fit, **drop to a smaller Qwen3.5 (4B/2B)** just to exercise the plumbing. The point of Post 1 is the contract, not the model.
+- If a full model won't fit, **drop to a smaller Qwen3.5 (4B/2B)** just to exercise the plumbing. The point of [Post 1](./1%20-%20Local-first:%20a%20model%20on%20your%20own%20machine,%20zero%20cloud.md) is the contract, not the model.
 
 **Definition of Done** — Cost: $0
 - [ ] OpenAI SDK round-trips against `localhost`
