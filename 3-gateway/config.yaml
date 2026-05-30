@@ -1,0 +1,20 @@
+# Post 3 — LiteLLM proxy routing two local llama-server backends.
+# Clients hit http://localhost:4000/v1 with model="gpt-oss" or "qwen3.5".
+
+model_list:
+  - model_name: gpt-oss
+    litellm_params:
+      model: openai/gpt-oss
+      api_base: http://127.0.0.1:8010/v1
+      api_key: dummy            # llama-server doesn't check; placeholder for the SDK
+  - model_name: qwen3.5
+    litellm_params:
+      model: openai/qwen3.5
+      api_base: http://127.0.0.1:8011/v1
+      api_key: dummy
+
+general_settings:
+  master_key: sk-portway-local  # single client-facing key for Post 3; Post 4 replaces this
+
+litellm_settings:
+  drop_params: true             # silently drop unsupported params instead of erroring
