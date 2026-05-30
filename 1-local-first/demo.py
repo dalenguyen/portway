@@ -4,18 +4,23 @@ Run:
     uv run --project 1-local-first python 1-local-first/demo.py
 """
 
+import os
+
 from openai import OpenAI
 
 BASE_URL = "http://localhost:11434/v1"  # Ollama's OpenAI-compatible endpoint
 API_KEY = "ollama"  # any non-empty string; Ollama ignores it locally
-MODEL = "gpt-oss:20b"
+# Default targets a 48 GB box. On ~9 GB machines, override with a smaller model:
+#   MODEL=llama3.2:3b uv run --project 1-local-first python 1-local-first/demo.py
+#   MODEL=qwen2.5:3b  uv run --project 1-local-first python 1-local-first/demo.py
+MODEL = os.environ.get("MODEL", "gpt-oss:20b")
 
 client = OpenAI(base_url=BASE_URL, api_key=API_KEY)
 
 
 def round_trip() -> None:
     print("=" * 60)
-    print("Block 1 — round-trip via OpenAI SDK against localhost")
+    print(f"Block 1 — round-trip via OpenAI SDK against localhost ({MODEL})")
     print("=" * 60)
     r = client.chat.completions.create(
         model=MODEL,
