@@ -9,7 +9,7 @@ Stand up a single local endpoint that fronts the two Post-2 backends. Clients pi
 In scope for Post 3:
 - A LiteLLM proxy in front of the two `llama-server` processes from Post 2.
 - A public `/v1/models` listing both routes.
-- Clean OpenAI-shaped 404 on an unknown `model`.
+- Clean OpenAI-shaped error on an unknown `model` (LiteLLM 1.86.x returns 400; the body shape is the contract, not the status code).
 - Segregation of the model's reasoning channel into `choices[].message.reasoning_content` (instead of inlining it in `content`).
 - `reasoning_effort` passthrough for gpt-oss.
 
@@ -23,7 +23,7 @@ Out of scope (owned by later posts):
 
 Follows the established `<n>-<name>/` pattern from Posts 1–2.
 
-```
+```text
 3-gateway/
   config.yaml          # LiteLLM model_list + master_key + drop_params
   start-gateway.sh     # start | stop | logs wrapper around `litellm --config ...`
@@ -80,8 +80,8 @@ Three blocks, mirroring Post 2's rhythm. All non-streaming.
 
 ### Block 1 — `/v1/models` on the gateway
 
-```
-GET http://localhost:4000/v1/models
+```http
+GET http://127.0.0.1:4000/v1/models
 Authorization: Bearer sk-portway-local
 → ["gpt-oss", "qwen3.5"]
 ```
@@ -101,16 +101,16 @@ for model in ["gpt-oss", "qwen3.5"]:
 
 The money block: one client, one base URL, one call shape. Flipping `model` hits a different backend. `reasoning_content` is visibly broken out from `content`, making the channel that Post 2 surfaced concretely addressable.
 
-### Block 3 — Bad model name returns a clean 404
+### Block 3 — Bad model name returns a clean OpenAI-shaped error
 
 ```python
 try:
     client.chat.completions.create(model="gpt-99", messages=PROMPT)
-except openai.NotFoundError as e:
+except (openai.BadRequestError, openai.NotFoundError) as e:
     print(e.status_code, e.body)
 ```
 
-Demonstrates the OpenAI-shaped error contract: `{"error": {"message": ..., "type": ..., "code": ...}}`, status 404 — not a bare 500. Directly addresses the third DoD bullet.
+Demonstrates the OpenAI-shaped error contract: the wire body is `{"error": {"message": ..., "type": ..., "code": ...}}` — not a bare 500. LiteLLM 1.86.x returns status 400; the catch tuple keeps the demo robust to a future version that returns 404. The OpenAI SDK's `.body` attribute exposes the *inner* error dict (envelope stripped), so the printed body looks like `{message, type, code, ...}` rather than `{error: {...}}`. Directly addresses the third DoD bullet.
 
 Total demo: ~50 LOC. No streaming, no concurrency.
 
@@ -130,7 +130,7 @@ The walkthrough's closing section will cover these, in this order:
 Verbatim from `series.md` Post 3:
 - [ ] One base URL; flipping `model` between the two names hits different local backends (Block 2).
 - [ ] `/v1/models` lists both model names (Block 1).
-- [ ] A bad model name returns a clean 404 (Block 3).
+- [ ] A bad model name returns a clean OpenAI-shaped error (Block 3).
 
 Implicit (from §3.2):
 - [ ] `reasoning_content` is populated for both models in Block 2 output.

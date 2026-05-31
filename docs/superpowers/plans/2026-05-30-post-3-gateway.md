@@ -493,7 +493,7 @@ git commit -m "Post 3: demo.py Block 2 — same prompt, two voices, reasoning_co
 
 ---
 
-### Task 7: Implement `demo.py` Block 3 — bad model name returns a clean 404
+### Task 7: Implement `demo.py` Block 3 — bad model name returns a clean OpenAI-shaped error
 
 **Files:**
 - Modify: `3-gateway/demo.py` (append `bad_model_name`, call from `__main__`, add `openai` import for the exception class)
@@ -521,13 +521,13 @@ Append to `3-gateway/demo.py` (above the `if __name__` block):
 def bad_model_name() -> None:
     print()
     print("=" * 60)
-    print("Block 3 — unknown model name returns a clean OpenAI-shaped 404")
+    print("Block 3 — unknown model name returns a clean OpenAI-shaped error")
     print("=" * 60)
     try:
         client.chat.completions.create(
             model="gpt-99", messages=[{"role": "user", "content": "hi"}]
         )
-    except openai.NotFoundError as e:
+    except (openai.BadRequestError, openai.NotFoundError) as e:
         print(f"status:  {e.status_code}")
         print(f"body:    {e.body}")
         return
@@ -550,21 +550,21 @@ if __name__ == "__main__":
 Run: `uv run --project 3-gateway python 3-gateway/demo.py`
 Expected ending block:
 
-```
+```text
 ============================================================
-Block 3 — unknown model name returns a clean OpenAI-shaped 404
+Block 3 — unknown model name returns a clean OpenAI-shaped error
 ============================================================
-status:  404
-body:    {'error': {'message': '...gpt-99...', 'type': 'NotFoundError', ...}}
+status:  400
+body:    {'message': '/chat/completions: Invalid model name passed in model=gpt-99...', 'type': 'None', 'param': 'None', 'code': '400', ...}
 ```
 
-Acceptance: `status` is `404`, `body` is a dict with a top-level `error` key whose value is a dict (OpenAI's error shape). Exact `type`/`message` strings can vary by LiteLLM version.
+Acceptance: `status` is `400` (or `404` on future LiteLLM versions — the catch tuple covers both), `body` is a dict in the OpenAI error shape. The OpenAI SDK's `.body` exposes the inner error dict (envelope stripped); the wire payload carries the `{error: {...}}` envelope. Exact `type`/`message` strings can vary by LiteLLM version.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add 3-gateway/demo.py
-git commit -m "Post 3: demo.py Block 3 — unknown model returns OpenAI-shaped 404"
+git commit -m "Post 3: demo.py Block 3 — unknown model returns OpenAI-shaped error"
 ```
 
 ---
@@ -620,7 +620,7 @@ This walkthrough is the concrete, runnable counterpart to Post 3 in [`series.md`
 - `3-gateway/demo.py` — three blocks:
   1. **Gateway inventory:** GET `/v1/models` on the gateway, see both routes.
   2. **Same prompt, two voices, one base URL:** flip `model` between `gpt-oss` and `qwen3.5` against the same client; reasoning lives in its own field.
-  3. **Bad model name:** request `gpt-99`, get an OpenAI-shaped 404 instead of a bare 500.
+  3. **Bad model name:** request `gpt-99`, get an OpenAI-shaped error instead of a bare 500.
 
 ## How this differs from Post 2
 
@@ -673,13 +673,13 @@ _(Captured on this machine — M4 Pro Mac, 48 GB, llama.cpp build 9430 / Metal, 
 - **`reasoning_content` is its own field.** gpt-oss's Harmony trace and Qwen3.5's `<think>` block both land in the same slot — Post 5's metering will need to count both separately.
 - **`reasoning_effort` passes through unchanged.** Add `extra_body={"reasoning_effort": "low"}` to a gpt-oss call and the gateway forwards it — useful when you want the visible answer without the long reasoning trace. LiteLLM does this for free; no gateway code involved.
 
-**Worth staring at in Block 3:** the error body is the OpenAI shape (`{"error": {"message": ..., "type": ...}}`) and the status is 404. Stock OpenAI SDKs raise `openai.NotFoundError` automatically; nothing in client code has to know LiteLLM is involved.
+**Worth staring at in Block 3:** the wire body is the OpenAI shape (`{"error": {"message": ..., "type": ...}}`) and the status is 400 (LiteLLM 1.86.x's choice — newer versions may return 404). The demo catches both `BadRequestError` and `NotFoundError`; either way, stock OpenAI SDKs raise the matching exception automatically.
 
 ## Definition of Done
 
 - [x] `/v1/models` on `:4000` lists both `gpt-oss` and `qwen3.5` — Block 1.
 - [x] Flipping `model` between the two names on the same base URL hits different local backends — Block 2.
-- [x] An unknown model name returns a clean OpenAI-shaped 404 — Block 3.
+- [x] An unknown model name returns a clean OpenAI-shaped error — Block 3.
 - [x] `reasoning_content` is populated for both models in Block 2.
 
 ## Things that bit, worth noting now

@@ -53,11 +53,11 @@ uv run --project 3-gateway python 3-gateway/demo.py
 
 _(Captured on this machine — M4 Pro Mac, 48 GB, llama.cpp build 9430 / Metal, LiteLLM 1.86.x.)_
 
-```
+```text
 ============================================================
 Block 1 — /v1/models on the gateway
 ============================================================
-http://localhost:4000/v1/models -> ['gpt-oss', 'qwen3.5']
+http://127.0.0.1:4000/v1/models -> ['gpt-oss', 'qwen3.5']
 
 ============================================================
 Block 2 — same prompt, two voices, one base URL

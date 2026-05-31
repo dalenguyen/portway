@@ -9,7 +9,7 @@ Run:
 import openai
 from openai import OpenAI
 
-GATEWAY_URL = "http://localhost:4000/v1"
+GATEWAY_URL = "http://127.0.0.1:4000/v1"
 MASTER_KEY = "sk-portway-local"
 
 client = OpenAI(base_url=GATEWAY_URL, api_key=MASTER_KEY)
