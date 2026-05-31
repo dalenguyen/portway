@@ -70,6 +70,25 @@ def models_per_key(full_key: str, scoped_key: str) -> None:
         print(f"{label:13s} -> {ids}")
 
 
+def scope_violation(scoped_key: str) -> None:
+    print()
+    print("=" * 60)
+    print("Block 2 — scoped key blocked on out-of-scope model")
+    print("=" * 60)
+    c = OpenAI(base_url=f"{GATEWAY_URL}/v1", api_key=scoped_key)
+    try:
+        c.chat.completions.create(
+            model="qwen3.5",
+            messages=[{"role": "user", "content": "hi"}],
+        )
+    except (openai.AuthenticationError, openai.PermissionDeniedError) as e:
+        print(f"status:  {e.status_code}")
+        print(f"body:    {e.body}")
+        return
+    raise SystemExit("Block 2 FAILED: scoped key was allowed to call qwen3.5")
+
+
 if __name__ == "__main__":
     full_key, scoped_key = mint_keys()
     models_per_key(full_key, scoped_key)
+    scope_violation(scoped_key)
