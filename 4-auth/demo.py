@@ -59,5 +59,17 @@ def mint_keys() -> tuple[str, str]:
     return full_key, scoped_key
 
 
+def models_per_key(full_key: str, scoped_key: str) -> None:
+    print()
+    print("=" * 60)
+    print("Block 1 — /v1/models reflects per-key scope")
+    print("=" * 60)
+    for label, key in [("full-access", full_key), ("scoped", scoped_key)]:
+        c = OpenAI(base_url=f"{GATEWAY_URL}/v1", api_key=key)
+        ids = sorted(m.id for m in c.models.list().data)
+        print(f"{label:13s} -> {ids}")
+
+
 if __name__ == "__main__":
     full_key, scoped_key = mint_keys()
+    models_per_key(full_key, scoped_key)
