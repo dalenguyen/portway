@@ -2,7 +2,7 @@
 name = "portway"
 version = "0.0.0"
 description = "Self-hosted, run-anywhere gateway for local LLMs (build-along series)."
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 
 [tool.uv.workspace]
-members = ["1-local-first", "2-two-models"]
+members = ["1-local-first", "2-two-models", "3-gateway"]

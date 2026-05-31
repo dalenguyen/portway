@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 .env
 2-two-models/logs/
+3-gateway/logs/
+docs/superpowers/
