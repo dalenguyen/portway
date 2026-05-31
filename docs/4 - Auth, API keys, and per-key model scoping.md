@@ -19,6 +19,7 @@ flowchart LR
 ## What's in this post
 
 - `4-auth/config.yaml` — extends Post 3's config with `database_url`, `store_model_in_db: false`, and a renamed `master_key` (`sk-portway-admin`) to signal its admin role.
+- `4-auth/start-backends.sh` — local copy of Post 2's two-`llama-server` launcher (with `--ctx-size 131072` so LAN clients can send big prompts; see notes below). Lets this post be runnable from its own directory without crossing post boundaries.
 - `4-auth/start-keystore.sh` — `start|stop|status` wrapper around a `postgres:16` Docker container (`portway-keystore`) on `:5432`.
 - `4-auth/start-gateway.sh` — wraps `litellm --config ...` like Post 3, but refuses to start unless the keystore is reachable, and runs an idempotent `prisma generate` on first boot.
 - `4-auth/demo.py` — five blocks:
@@ -42,7 +43,7 @@ The container is intentionally **ephemeral** — no volume mount. Demo keys carr
 
 ## Prerequisites
 
-- Posts 1–3 working. In particular, `2-two-models/start-backends.sh` must run cleanly and both `:8010/v1/models` and `:8011/v1/models` respond.
+- The same models from Post 2 work on your machine. Post 4 ships its own `4-auth/start-backends.sh` so you don't need Post 2's directory in front of you — but if Post 2 didn't work, the underlying `llama-server` setup is the same problem.
 - Docker daemon available (`docker ps` works without sudo).
 - Port `5432` free. If you have a native macOS Postgres, `brew services stop postgresql@15` (or your version) before running the demo.
 - Python `<3.14` and [uv](https://docs.astral.sh/uv/) installed — same as Post 3.
@@ -52,9 +53,11 @@ The container is intentionally **ephemeral** — no volume mount. Demo keys carr
 From the repo root:
 
 ```bash
-# 1. Backends from Post 2 (if not already running).
-2-two-models/start-backends.sh
-# Wait for "server is listening" in both 2-two-models/logs/*.log.
+# 1. Backends (same two llama-server processes as Post 2).
+# Post 4 ships its own copy of start-backends.sh so this directory is
+# self-contained — no need to cd into 2-two-models/.
+4-auth/start-backends.sh
+# Wait for "server is listening" in both 4-auth/logs/*.log.
 
 # 2. Postgres keystore.
 4-auth/start-keystore.sh start
@@ -164,7 +167,7 @@ Two caveats worth front-loading before you point real tooling at this:
 - **`0.0.0.0` means everyone on your LAN can call it.** The virtual keys gate model access, but not network access. If your WiFi includes untrusted devices, bind to a specific interface or put the box behind a firewall before sharing keys.
 - **The honest throughput number is a Post 7 concern, not Post 4's.** This block is an opportunistic measurement — sample of 12, no concurrency, no streaming — useful for sanity but not benchmarking. Post 7 formalizes TTFT, p95, and load characterization.
 
-**Back-edit to Post 2.** Real chat clients send prompts well past Post 2's original `--ctx-size 8192` (the 12-request sample above included one 17,646-token prompt). Both `llama-server` invocations in `2-two-models/start-backends.sh` were bumped to `--ctx-size 131072` (128K, native max for both models) so the gateway can actually forward what clients send. Heads-up: 128K KV cache × 4 default slots × 2 co-located models is roughly 40 GB of memory in flight — fine on a 48 GB box, OOM on a 16 GB one. If you're on tighter hardware, pick a smaller number (32K covers most real prompts) or drop `--parallel 1`.
+**About the ctx-size.** `4-auth/start-backends.sh` ships with `--ctx-size 131072` (128K, native max for both models) so the gateway can actually forward what LAN clients send — the 12-request sample above included one 17,646-token prompt that would have been rejected at Post 2's original 8K default. Heads-up: 128K KV cache × 4 default slots × 2 co-located models is roughly 40 GB of memory in flight — fine on a 48 GB box, OOM on a 16 GB one. If you're on tighter hardware, edit your local copy to a smaller number (32K covers most real prompts) or add `--parallel 1` to each `llama-server` invocation.
 
 ## What's next
 
