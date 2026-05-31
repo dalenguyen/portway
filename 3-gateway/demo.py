@@ -50,7 +50,7 @@ def bad_model_name() -> None:
         client.chat.completions.create(
             model="gpt-99", messages=[{"role": "user", "content": "hi"}]
         )
-    except openai.APIStatusError as e:
+    except (openai.BadRequestError, openai.NotFoundError) as e:
         print(f"status:  {e.status_code}")
         print(f"body:    {e.body}")
         return
