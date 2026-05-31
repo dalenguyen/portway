@@ -4,7 +4,7 @@
 
 This walkthrough is the concrete, runnable counterpart to Post 3 in [`series.md`](./series.md). Everything here runs locally for $0.
 
-← Previous: [Post 2 — Two models locally, and the art of placing them](./2%20-%20Two%20models%20locally,%20and%20the%20art%20of%20placing%20them.md)
+← Previous: [Post 2 — Two models locally, and the art of placing them](./2%20-%20Two%20models%20locally,%20and%20the%20art%20of%20placing%20them.md) · ⤴ Start of series: [Post 1 — Local-first: a model on your own machine, zero cloud](./1%20-%20Local-first:%20a%20model%20on%20your%20own%20machine,%20zero%20cloud.md)
 
 ## What's in this post
 
