@@ -22,5 +22,24 @@ def gateway_inventory() -> None:
     print(f"{GATEWAY_URL}/models -> {sorted(ids)}")
 
 
+def same_prompt_two_voices() -> None:
+    print()
+    print("=" * 60)
+    print("Block 2 — same prompt, two voices, one base URL")
+    print("=" * 60)
+    prompt = "In one sentence, what makes Ottawa Canada's capital?"
+    for model in ["gpt-oss", "qwen3.5"]:
+        r = client.chat.completions.create(
+            model=model, messages=[{"role": "user", "content": prompt}]
+        )
+        msg = r.choices[0].message
+        reasoning = (msg.reasoning_content or "").strip()
+        print(f"--- {model} ---")
+        print("content:          ", (msg.content or "").strip())
+        print("reasoning (≤200): ", reasoning[:200] + ("…" if len(reasoning) > 200 else ""))
+        print("usage:            ", r.usage)
+
+
 if __name__ == "__main__":
     gateway_inventory()
+    same_prompt_two_voices()
