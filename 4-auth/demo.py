@@ -88,7 +88,29 @@ def scope_violation(scoped_key: str) -> None:
     raise SystemExit("Block 2 FAILED: scoped key was allowed to call qwen3.5")
 
 
+def rpm_trip(scoped_key: str) -> None:
+    print()
+    print("=" * 60)
+    print("Block 3 — RPM limit trips 429")
+    print("=" * 60)
+    c = OpenAI(base_url=f"{GATEWAY_URL}/v1", api_key=scoped_key, max_retries=0)
+    # scoped key has rpm_limit=3. Fire 4 quick requests; expect 4th to 429.
+    for i in range(1, 5):
+        try:
+            c.chat.completions.create(
+                model="gpt-oss",
+                messages=[{"role": "user", "content": "ping"}],
+                max_tokens=4,
+            )
+            print(f"  request {i}: 200")
+        except openai.RateLimitError as e:
+            print(f"  request {i}: {e.status_code} (RateLimitError) — RPM tripped")
+            return
+    raise SystemExit("Block 3 FAILED: RPM limit never tripped over 4 requests")
+
+
 if __name__ == "__main__":
     full_key, scoped_key = mint_keys()
     models_per_key(full_key, scoped_key)
     scope_violation(scoped_key)
+    rpm_trip(scoped_key)
