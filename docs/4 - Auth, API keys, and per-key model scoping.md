@@ -130,6 +130,30 @@ body:    {'message': 'Rate limit exceeded for api_key: 18c19c8d... Limit type: t
 10. **Duplicate `key_alias` and `key_alias` enforcement are stricter than the docs suggest.** Related to #8: even keys that have *expired* (past their `duration`) still occupy their alias in the DB. The uniqueness check is against the row, not against active state. The uuid-suffix trick sidesteps this entirely.
 11. **Rate limits live at the gateway, not the backend.** A leaked key is still cheap to fingerprint by spamming — the auth check happens *before* the rate-limit check, so even a 401-returning probe consumes a tiny amount of gateway CPU. Not a problem for a local demo; relevant for Post 12's hardening pass.
 
+## Side finding: the gateway is already LAN-ready
+
+A small change to `start-gateway.sh` turns this from a localhost demo into a usable LAN endpoint for any other machine on your WiFi:
+
+```diff
+ uv run --project . litellm \
+   --config config.yaml \
+   --port 4000 \
+-  --host 127.0.0.1 \
++  --host 0.0.0.0 \
+   >logs/gateway.log 2>&1 &
+```
+
+That's it. With `0.0.0.0`, other devices on your LAN can hit `http://<your-mac-LAN-IP>:4000/v1` using the virtual keys minted in Block 0 (or via curl as in [§"What's next"](#whats-next) below). Verified live: a remote client on the same WiFi made twelve consecutive requests through the gateway → llama.cpp backends, mixed sizes from 69 to 17,646 prompt tokens, with these results:
+
+- **Decode rate:** 54.4 ± 1.6 t/s — steady across all 12 requests, no degradation between small and large prompts.
+- **Prefill rate:** ~220 t/s on small prompts (~80 tokens), rising to ~600 t/s on the 17K-token prompt as fixed overhead amortizes.
+- **LAN/WiFi overhead:** below the noise floor. The backend-reported throughput (per `llama-server`'s `print_timing` lines) matched what the client perceived end-to-end. On a healthy LAN, gateway + backend metrics are the right numbers to quote.
+
+Two caveats worth front-loading before you point real tooling at this:
+
+- **`0.0.0.0` means everyone on your LAN can call it.** The virtual keys gate model access, but not network access. If your WiFi includes untrusted devices, bind to a specific interface or put the box behind a firewall before sharing keys.
+- **The honest throughput number is a Post 7 concern, not Post 4's.** This block is an opportunistic measurement — sample of 12, no concurrency, no streaming — useful for sanity but not benchmarking. Post 7 formalizes TTFT, p95, and load characterization.
+
 ## What's next
 
 Post 5 adds **metering** on top of this: every request through the gateway produces a row in a metering table (key, model, prompt/completion tokens, cost). The streaming-usage gotcha (`stream_options.include_usage`) lives there. The same Postgres container hosts both the key store (this post) and the metering table — and that's why we picked Postgres over SQLite.
