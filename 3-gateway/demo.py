@@ -6,6 +6,7 @@ Run:
     uv run --project 3-gateway python 3-gateway/demo.py
 """
 
+import openai
 from openai import OpenAI
 
 GATEWAY_URL = "http://localhost:4000/v1"
@@ -40,6 +41,23 @@ def same_prompt_two_voices() -> None:
         print("usage:            ", r.usage)
 
 
+def bad_model_name() -> None:
+    print()
+    print("=" * 60)
+    print("Block 3 — unknown model name returns a clean OpenAI-shaped error")
+    print("=" * 60)
+    try:
+        client.chat.completions.create(
+            model="gpt-99", messages=[{"role": "user", "content": "hi"}]
+        )
+    except openai.APIStatusError as e:
+        print(f"status:  {e.status_code}")
+        print(f"body:    {e.body}")
+        return
+    raise SystemExit("Block 3 FAILED: gateway accepted a bogus model name")
+
+
 if __name__ == "__main__":
     gateway_inventory()
     same_prompt_two_voices()
+    bad_model_name()
