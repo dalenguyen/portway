@@ -100,8 +100,9 @@ Built step-by-step — check each post off as it ships.
 - [ ] **Post 9** — Deploy to a cloud — any provider, any region *(optional · rental)*
 - [ ] **Post 10** — Data residency & region policy *(optional · rental)*
 - [ ] **Post 11** — Scaling & reliability *(optional · rental)*
-- [ ] **Post 12** — Observability, billing, hardening & launch *(optional · rental)*
-- [ ] **Post 13** — Extending the catalog *(optional)*
+- [ ] **Post 12** — Users, teams, admin UI, and registration *(optional · rental)*
+- [ ] **Post 13** — Observability, billing, hardening & launch *(optional · rental)*
+- [ ] **Post 14** — Extending the catalog *(optional)*
 
 ## Status
 

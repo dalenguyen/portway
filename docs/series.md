@@ -69,7 +69,7 @@ flowchart LR
     Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
 ```
 
-Posts 5–13 keep this shape and add: metering (Post 5), client-side conversation state (Post 6), performance characterization (Post 7), containerization (Post 8), cloud deploy (Post 9), residency overlays (Post 10), scaling (Post 11), observability + billing (Post 12), and extending the catalog (Post 13).
+Posts 5–14 keep this shape and add: metering (Post 5), client-side conversation state (Post 6), performance characterization (Post 7), containerization (Post 8), cloud deploy (Post 9), residency overlays (Post 10), scaling (Post 11), users/teams/admin UI (Post 12), observability + billing + hardening (Post 13), and extending the catalog (Post 14).
 
 Four rules that hold the whole way through:
 1. **Backends are stateless.** History is carried by the client every request; the server's KV/prefix cache makes the repeated prefix cheap, but it's a cache, never state.
@@ -375,29 +375,57 @@ services:
 
 ---
 
-## Post 12 — Observability, billing, hardening & launch
+## Post 12 — Users, teams, admin UI, and registration
 
-**Goal:** turn the working system into a product strangers can pay for.
+**Goal:** put humans in front of the system. Add team/org grouping, separate UI-admin credentials from the API master_key, expose a real signup flow, and wire role-based access so customers, internal admins, and billing-only viewers each see the right slice.
 
-**Observability:** dashboards over the metering store — RPS, TTFT p50/p95, tokens/sec, error rate, spend, sliceable by key and model; alert on p95 TTFT, error rate, budget breaches. (Keep these in-policy if a residency overlay is active.)
+**Why a dedicated post:** Post 4 gave us virtual keys but they're mint-by-curl-only. Post 5's metering produces per-key rows but no one can read them without API access. LiteLLM's bundled admin UI (auto-mounted at `/ui/` whenever `database_url` is set — see Post 4's "Bonus" section) is the first usable surface, but out of the box the master_key doubles as the UI password and there are no teams, no self-serve signup, no role split. This post turns it into a product face.
 
-**Logging policy — deliberate:** always log metadata (tokens, latency, model, key, request_id); make prompt/completion content logging opt-in, redacted, short-retention. Retrofitting redaction is miserable.
+**Concept — three roles, three surfaces:**
+- **Customer.** Hits `/v1/chat/completions` with a virtual key. Should never see the admin UI.
+- **Org admin.** Manages keys/budgets/spend for their own team via a scoped UI login. Doesn't touch other orgs.
+- **Proxy admin (you).** Mints orgs, reads everything, rotates the master_key.
 
-**Billing:** roll metering up per org per month against the price table; choose prepaid credits vs. postpaid; wire budget enforcement back to the Post-4 key limits (maxed budget → 402/429, not a surprise invoice).
+**Build sequence:**
+- **Decouple UI auth from master_key.** Add `ui_username` / `ui_password` under `general_settings` (Post 4 "things that bit" #14 calls this out as a moment-you-go-past-localhost fix). Now the master_key stays for API mint, the UI uses its own creds.
+- **Teams + organizations.** LiteLLM's `/team/new` and `/organization/new` endpoints. Each customer becomes a team; org admins get keys scoped to their team's `team_id`. Budgets aggregate at the team level so a single customer with 5 keys shares one monthly cap.
+- **Self-serve signup.** Stand up a tiny FastAPI/Next.js page that takes email → creates user → mints a starter virtual key (limited models, low rpm/tpm, $1 trial budget) → emails the `sk-...` once and never again. The actual "key shown once" behavior from Post 4 #6 is the security backbone here.
+- **Role-based dashboards.** Reuse LiteLLM's per-key spend views but filter by role: customer sees own usage, org admin sees their team, proxy admin sees everything.
+- **SSO (optional).** LiteLLM supports SAML/OIDC for the admin UI; wire it for the org-admin role so customers don't manage another password.
 
-**Hardening:** rotate keys; secrets in a manager; TLS everywhere; network-isolate backends so only the gateway reaches them; edge abuse protection.
+**Bake in now (painful later):** every UI access produces an audit row (who/when/what); make the signup endpoint rate-limited and CAPTCHA'd before you publicize the URL; never log raw keys, hashes only.
 
-**The product skin:** signup → key issuance → customer usage dashboard → docs ("point your OpenAI SDK at `https://<you>/v1`, here are the model names"). That last line is the payoff: customers integrate by changing a base URL.
-
-**Definition of Done**
-- [ ] A stranger signs up and receives a scoped key
-- [ ] Calls `gpt-oss`/`qwen3.5` with the stock OpenAI SDK successfully
-- [ ] Sees their usage in the dashboard
-- [ ] Is billed correctly on whatever target and region policy is active
+**Definition of Done** — Cost: $0 (still local; same Postgres backs it)
+- [ ] UI login works with `ui_username`/`ui_password`; the master_key still works for API admin but does NOT log into the UI.
+- [ ] A stranger hits `/signup`, gets a starter virtual key in their email, can call `gpt-oss` with it.
+- [ ] An org admin sees only their team's keys and spend, not other orgs'.
+- [ ] An audit row is written for every UI mint/revoke.
 
 ---
 
-## Optional Post 13 — Extending the catalog (the real OpenRouter move)
+## Post 13 — Observability, billing, hardening & launch
+
+**Goal:** turn the working system into a product that can actually run in production. Post 12 put humans in front of it; Post 13 makes it survivable under load and durable against operator mistakes.
+
+**Observability:** dashboards over the metering store — RPS, TTFT p50/p95, tokens/sec, error rate, spend, sliceable by key, team, and model; alert on p95 TTFT, error rate, budget breaches. (Keep these in-policy if a residency overlay is active.)
+
+**Logging policy — deliberate:** always log metadata (tokens, latency, model, key, request_id, team_id); make prompt/completion content logging opt-in, redacted, short-retention. Retrofitting redaction is miserable.
+
+**Billing:** roll metering up per org per month against the price table; choose prepaid credits vs. postpaid; wire budget enforcement back to the Post-4 key limits and Post-12 team budgets (maxed budget → 402/429, not a surprise invoice).
+
+**Hardening:** rotate keys; secrets in a manager; TLS everywhere; network-isolate backends so only the gateway reaches them; edge abuse protection; rate-limit the Post-12 signup endpoint.
+
+**Launch:** docs ("point your OpenAI SDK at `https://<you>/v1`, here are the model names"). That last line is the payoff — customers integrate by changing a base URL.
+
+**Definition of Done**
+- [ ] Customer-facing dashboards render real spend within seconds of a request landing.
+- [ ] An operator can rotate the master_key without dropping in-flight requests.
+- [ ] An exceeded team budget returns `402` cleanly; the next month auto-resets.
+- [ ] All prompts/completions are off by default; turning content logging on requires a config change AND retention policy.
+
+---
+
+## Optional Post 14 — Extending the catalog (the real OpenRouter move)
 
 Adding models is routine once the machine works: new `vllm serve` + one routing-table entry (mind VRAM placement); LoRA fine-tunes multiplex on one process if they share a base; and the same router can front *any* OpenAI-compatible upstream — within a residency overlay that means more in-region backends, and without one it means external providers as routes, which is exactly OpenRouter's model.
 
@@ -419,8 +447,9 @@ Adding models is routine once the machine works: new `vllm serve` + one routing-
 | 9 | Deploy to cloud — any provider/region | Optional | rental |
 | 10 | Residency/sovereignty overlay (Canada example) | Optional | rental |
 | 11 | Scaling & reliability | Optional | rental |
-| 12 | Observability, billing, hardening, launch | Optional | rental |
-| 13 | Extending the catalog | Optional | — |
+| 12 | Users, teams, admin UI, registration | Optional | rental |
+| 13 | Observability, billing, hardening, launch | Optional | rental |
+| 14 | Extending the catalog | Optional | — |
 
 ## Recurring Definition-of-Done checklist
 - [ ] Stateless backends — server holds no conversation

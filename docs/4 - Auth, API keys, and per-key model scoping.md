@@ -141,9 +141,15 @@ body:    {'message': 'Rate limit exceeded for api_key: 18c19c8d... Limit type: t
 8. **`key_alias` is globally unique.** LiteLLM enforces uniqueness across the whole DB and returns `400 "Key with alias 'X' already exists"` on collisions. A demo that hardcodes aliases works on first run and fails on every subsequent one. `demo.py` suffixes each alias with `uuid.uuid4().hex[:8]` so replays don't collide. Worth knowing for any tool that mints keys with stable names.
 9. **`litellm[proxy]` doesn't pull Prisma.** LiteLLM's DB layer uses Prisma, but installing `litellm[proxy]>=1.86` doesn't pull the `prisma` Python package or generate its client. Without `prisma`: `ModuleNotFoundError: No module named 'prisma'` at startup. With `prisma` but not generated: `Unable to find Prisma binaries. Please run 'prisma generate' first.` The fix is two-part: (a) add `prisma>=0.15` to `pyproject.toml`; (b) run `prisma generate --schema=<litellm_proxy_extras path>/schema.prisma` once. `start-gateway.sh` does this idempotently — on first boot you'll see `generating prisma client (one-time)...` and ~10s of delay; subsequent runs skip it.
 10. **Duplicate `key_alias` and `key_alias` enforcement are stricter than the docs suggest.** Related to #8: even keys that have *expired* (past their `duration`) still occupy their alias in the DB. The uniqueness check is against the row, not against active state. The uuid-suffix trick sidesteps this entirely.
-11. **Rate limits live at the gateway, not the backend.** A leaked key is still cheap to fingerprint by spamming — the auth check happens *before* the rate-limit check, so even a 401-returning probe consumes a tiny amount of gateway CPU. Not a problem for a local demo; relevant for Post 12's hardening pass.
+11. **Rate limits live at the gateway, not the backend.** A leaked key is still cheap to fingerprint by spamming — the auth check happens *before* the rate-limit check, so even a 401-returning probe consumes a tiny amount of gateway CPU. Not a problem for a local demo; relevant for Post 13's hardening pass.
 12. **Clients probe non-OpenAI endpoints on startup; expect 404 noise.** Real OpenAI-compatible clients (LM Studio, Open WebUI, Continue.dev, custom CLI tools) fingerprint the server type before settling on a protocol. You'll see a burst of 404s in `4-auth/logs/gateway.log` like `/api/show`, `/api/tags` (Ollama probes), `/v1/props`, `/props`, `/version` (llama.cpp native probes), and sometimes `/api/v1/models` (older OpenAI-ish path). LiteLLM speaks only the OpenAI subset, so all of these correctly 404 and the client falls back to `/v1/models`. Cosmetic log noise — *not* a sign that anything is broken. If you want clean logs, configure the client to skip detection or accept the noise.
 13. **`GET /v1/models/{id}` is admin-only in LiteLLM 1.86.** The OpenAI "retrieve a single model" endpoint is bucketed by LiteLLM as a route requiring `proxy_admin` role, so a customer virtual key gets a 401 with a confusingly-worded error: `"Only proxy admin can be used to generate, delete, update info for new keys/users/teams. Route=/v1/models/gpt-oss. Your role=unknown."` The *list* endpoint (`/v1/models`) works fine for virtual keys (Block 1 proves it). Workaround: have your client use `/v1/models` and filter the result, not call `/v1/models/{id}` directly. Don't grant `proxy_admin` to customer keys just to silence this — that defeats the whole admin/customer split. Worth a LiteLLM upstream issue.
+14. **The master_key doubles as the admin UI password by default.** LiteLLM's bundled admin UI (see the "Bonus" section above) is mounted at `/ui/` whenever `database_url` is set. Out of the box, the username is `admin` and the password is your `master_key`. That's two superpowers stapled together: anyone who knows the master_key can both mint keys over REST *and* log into the UI to do the same. Once you bind `--host 0.0.0.0`, anyone on the LAN who guesses or learns the key gets both. Decouple them with this addition under `general_settings` in `config.yaml`:
+    ```yaml
+    ui_username: admin
+    ui_password: <a strong password, different from master_key>
+    ```
+    After a gateway restart, `sk-portway-admin` works only for API admin calls; UI access requires the separate password. Worth doing the moment you move past localhost. (Post 12 expands this into proper role-based access and SSO.)
 
 ## Side finding: the gateway is already LAN-ready
 
@@ -170,6 +176,28 @@ Two caveats worth front-loading before you point real tooling at this:
 - **The honest throughput number is a Post 7 concern, not Post 4's.** This block is an opportunistic measurement — sample of 12, no concurrency, no streaming — useful for sanity but not benchmarking. Post 7 formalizes TTFT, p95, and load characterization.
 
 **About the ctx-size.** `4-auth/start-backends.sh` ships with `--ctx-size 131072` (128K, native max for both models) so the gateway can actually forward what LAN clients send — the 12-request sample above included one 17,646-token prompt that would have been rejected at Post 2's original 8K default. Heads-up: 128K KV cache × 4 default slots × 2 co-located models is roughly 40 GB of memory in flight — fine on a 48 GB box, OOM on a 16 GB one. If you're on tighter hardware, edit your local copy to a smaller number (32K covers most real prompts) or add `--parallel 1` to each `llama-server` invocation.
+
+## Bonus: the admin UI is already running
+
+Setting `database_url` doesn't just enable virtual keys — LiteLLM also auto-mounts an admin UI at:
+
+- Local: `http://127.0.0.1:4000/ui/`
+- LAN (since `start-gateway.sh` binds `0.0.0.0`): `http://<your-LAN-IP>:4000/ui/`
+
+Log in with:
+
+- **Username:** `admin`
+- **Password:** your `master_key` (`sk-portway-admin` by default — see the security caveat in "things that bit" #14)
+
+From there you get a web equivalent of everything `demo.py` does over REST, plus a few things it doesn't:
+
+- **Virtual Keys** — list, create, revoke; edit `models`, `rpm_limit`, `tpm_limit`, `max_budget` per key.
+- **Users / Teams** — group keys, share budgets at the team level (Post 12 turns this into a real multi-tenant story).
+- **Models** — read-only since `store_model_in_db: false` keeps routes in YAML.
+- **Usage** — per-key spend, request counts, latency. The cells are empty today because nothing writes metering rows yet; Post 5 fixes that.
+- **Settings** — UI-driven equivalents of `general_settings` in `config.yaml`.
+
+There's no self-serve signup flow — key creation is admin-driven, either via this UI or via `POST /key/generate` like `demo.py`. Post 12 (Users, teams, admin UI, registration) covers signup, onboarding, role-based access, and SSO.
 
 ## What's next
 
