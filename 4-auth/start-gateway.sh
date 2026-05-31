@@ -30,6 +30,15 @@ if ! docker exec portway-keystore pg_isready -U postgres -d portway >/dev/null 2
   exit 1
 fi
 
+# LiteLLM's DB layer uses Prisma, but `litellm[proxy]` does not pull it. We declared
+# `prisma` in pyproject.toml; this block generates its Python client once against
+# LiteLLM's bundled schema. Idempotent — re-run is a no-op once `prisma.client` exists.
+if ! uv run --project . python -c "import prisma.client" >/dev/null 2>&1; then
+  echo "generating prisma client (one-time)..."
+  SCHEMA=$(uv run --project . python -c "import os, litellm_proxy_extras as m; print(os.path.join(os.path.dirname(m.__file__), 'schema.prisma'))")
+  uv run --project . prisma generate --schema="$SCHEMA" >/dev/null 2>&1
+fi
+
 uv run --project . litellm \
   --config config.yaml \
   --port 4000 \
