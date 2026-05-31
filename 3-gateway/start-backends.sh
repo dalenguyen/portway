@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Post 2 — launch two llama-server processes, one per model, on two ports.
+# Post 3 — launch two llama-server processes (Post-2 backends) on two ports.
+# Copy of 2-two-models/start-backends.sh so Post 3 is runnable from its own
+# directory without crossing post boundaries.
 #
 # Usage:
 #   ./start-backends.sh           # start both, background, log to ./logs/
@@ -29,7 +31,6 @@ if [[ "${1:-}" == "stop" ]]; then
 fi
 
 # Backend 1 — gpt-oss-20b (MXFP4 native) on :8010
-# -hf gives the repo; -hff names the specific GGUF (MXFP4 isn't a standard quant tag).
 llama-server \
   -hf ggml-org/gpt-oss-20b-GGUF \
   -hff gpt-oss-20b-mxfp4.gguf \
@@ -44,7 +45,6 @@ echo $! >"$PID_FILE_GPT"
 echo "gpt-oss   pid=$(cat $PID_FILE_GPT) port=8010 log=logs/gpt-oss.log"
 
 # Backend 2 — Qwen3.5-9B Q4_K_M on :8011
-# Q4_K_M is the default quant for -hf, so the suffix is optional here; keeping it explicit for the post.
 llama-server \
   -hf unsloth/Qwen3.5-9B-GGUF:Q4_K_M \
   --alias qwen3.5 \

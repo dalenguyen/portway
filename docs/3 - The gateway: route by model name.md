@@ -6,9 +6,17 @@ This walkthrough is the concrete, runnable counterpart to Post 3 in [`series.md`
 
 ← Previous: [Post 2 — Two models locally, and the art of placing them](./2%20-%20Two%20models%20locally,%20and%20the%20art%20of%20placing%20them.md) · ⤴ Start of series: [Post 1 — Local-first: a model on your own machine, zero cloud](./1%20-%20Local-first:%20a%20model%20on%20your%20own%20machine,%20zero%20cloud.md)
 
+```mermaid
+flowchart LR
+    Client["OpenAI SDK client"] -->|"sk-portway-local<br/>model field routes"| Gateway["LiteLLM proxy :4000"]
+    Gateway --> GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
 ## What's in this post
 
 - `3-gateway/config.yaml` — LiteLLM proxy config: two routes (`gpt-oss`, `qwen3.5`), one master key, `drop_params` for forward-compatibility.
+- `3-gateway/start-backends.sh` — local copy of Post 2's two-`llama-server` launcher. Lets this post be runnable from its own directory without crossing post boundaries.
 - `3-gateway/start-gateway.sh` — start/stop wrapper for the proxy on `:4000`.
 - `3-gateway/demo.py` — three blocks:
   1. **Gateway inventory:** GET `/v1/models` on the gateway, see both routes.
@@ -23,8 +31,8 @@ This walkthrough is the concrete, runnable counterpart to Post 3 in [`series.md`
 
 ## Prerequisites
 
-- Post 2 is working: `2-two-models/start-backends.sh` runs cleanly and both `:8010/v1/models` and `:8011/v1/models` respond.
-- `2-two-models/start-backends.sh` has been updated to pass `--jinja --reasoning-format auto` to both `llama-server` invocations (see "Things that bit"). Restart Post 2's backends after that change.
+- The same models from Post 2 work on your machine. Post 3 ships its own `3-gateway/start-backends.sh` so you don't need Post 2's directory in front of you — but if Post 2 didn't work, the underlying `llama-server` setup is the same problem.
+- `--jinja --reasoning-format auto` are baked into `3-gateway/start-backends.sh` (required for `reasoning_content` to populate; see "Things that bit").
 - [uv](https://docs.astral.sh/uv/) installed (`uv --version`).
 - **Python 3.13, not 3.14.** The workspace pins `requires-python = "<3.14"` because LiteLLM 1.86's proxy entrypoint hardcodes `uvloop`, and `uvloop` doesn't import on CPython 3.14 yet. If you're on a fresh 3.14 box, `uv venv --python 3.13` before `uv sync`.
 
@@ -33,9 +41,11 @@ This walkthrough is the concrete, runnable counterpart to Post 3 in [`series.md`
 From the repo root:
 
 ```bash
-# 1. Backends from Post 2 (if not already running).
-2-two-models/start-backends.sh
-# Wait for "server is listening" in both 2-two-models/logs/*.log.
+# 1. Backends (same two llama-server processes as Post 2).
+# Post 3 ships its own copy of start-backends.sh so this directory is
+# self-contained — no need to cd into 2-two-models/.
+3-gateway/start-backends.sh
+# Wait for "server is listening" in both 3-gateway/logs/*.log.
 
 # 2. Sync dependencies (first time only).
 uv sync

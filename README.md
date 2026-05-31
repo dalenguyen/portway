@@ -32,6 +32,44 @@
                        └──────────────────────────────────────────────┘
 ```
 
+<details>
+<summary><strong>How it grows, post by post</strong> (click to expand)</summary>
+
+**Post 1 — one model, one process:**
+```mermaid
+flowchart LR
+    Client["OpenAI SDK client"] -->|"key=sk-local-001"| Backend["llama-server :8010<br/>gpt-oss-20b"]
+```
+
+**Post 2 — second backend on a second port; client picks the URL:**
+```mermaid
+flowchart LR
+    Client["OpenAI SDK client"]
+    Client -->|"base_url=:8010"| GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Client -->|"base_url=:8011"| QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
+**Post 3 — gateway in front; client picks the model, not the URL:**
+```mermaid
+flowchart LR
+    Client["OpenAI SDK client"] -->|"sk-portway-local<br/>model field routes"| Gateway["LiteLLM proxy :4000"]
+    Gateway --> GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
+**Post 4 — admin/customer key split, Postgres-backed virtual keys, per-key scoping + rate limits, LAN-reachable:**
+```mermaid
+flowchart LR
+    Admin["admin<br/>sk-portway-admin"] -.->|"POST /key/generate"| Gateway
+    CustA["customer A<br/>sk-...full"] -->|"both models"| Gateway
+    CustB["customer B<br/>sk-...scoped<br/>rpm=3 · tpm=200"] -->|"gpt-oss only"| Gateway
+    Gateway["LiteLLM proxy :4000<br/>--host 0.0.0.0"] <-->|"keys, scope, limits"| DB[("Postgres<br/>portway-keystore")]
+    Gateway --> GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
+</details>
+
 ## Quickstart
 
 ```bash
@@ -54,7 +92,7 @@ Built step-by-step — check each post off as it ships.
 - [x] [**Post 1** — Local-first: a model on your own machine, zero cloud](./docs/1%20-%20Local-first:%20a%20model%20on%20your%20own%20machine,%20zero%20cloud.md) *(no cloud · $0)*
 - [x] [**Post 2** — Two models locally, and the art of placing them](./docs/2%20-%20Two%20models%20locally,%20and%20the%20art%20of%20placing%20them.md) *(no cloud · $0)*
 - [x] [**Post 3** — The gateway: route by model name](./docs/3%20-%20The%20gateway:%20route%20by%20model%20name.md) *(no cloud · $0)*
-- [ ] **Post 4** — Auth, API keys, and per-key model scoping *(no cloud · $0)*
+- [x] [**Post 4** — Auth, API keys, and per-key model scoping](./docs/4%20-%20Auth,%20API%20keys,%20and%20per-key%20model%20scoping.md) *(no cloud · $0)*
 - [ ] **Post 5** — Token tracking & metering *(no cloud · $0)*
 - [ ] **Post 6** — Conversation state & context management *(no cloud · $0)*
 - [ ] **Post 7** — Streaming, performance & load *(no cloud · $0)*
@@ -62,8 +100,9 @@ Built step-by-step — check each post off as it ships.
 - [ ] **Post 9** — Deploy to a cloud — any provider, any region *(optional · rental)*
 - [ ] **Post 10** — Data residency & region policy *(optional · rental)*
 - [ ] **Post 11** — Scaling & reliability *(optional · rental)*
-- [ ] **Post 12** — Observability, billing, hardening & launch *(optional · rental)*
-- [ ] **Post 13** — Extending the catalog *(optional)*
+- [ ] **Post 12** — Users, teams, admin UI, and registration *(optional · rental)*
+- [ ] **Post 13** — Observability, billing, hardening & launch *(optional · rental)*
+- [ ] **Post 14** — Extending the catalog *(optional)*
 
 ## Status
 

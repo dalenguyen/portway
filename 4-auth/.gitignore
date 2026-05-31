@@ -1,0 +1,4 @@
+logs/*.log
+logs/*.pid
+!logs/demo-sample-output.txt
+!logs/.gitkeep

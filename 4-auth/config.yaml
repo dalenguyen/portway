@@ -1,0 +1,22 @@
+# Post 4 — LiteLLM proxy with virtual-key support backed by Postgres.
+# Routes are unchanged from Post 3; auth is the new layer.
+
+model_list:
+  - model_name: gpt-oss
+    litellm_params:
+      model: openai/gpt-oss
+      api_base: http://127.0.0.1:8010/v1
+      api_key: dummy            # llama-server doesn't check
+  - model_name: qwen3.5
+    litellm_params:
+      model: openai/qwen3.5
+      api_base: http://127.0.0.1:8011/v1
+      api_key: dummy
+
+general_settings:
+  master_key: sk-portway-admin   # admin credential — mints virtual keys via /key/generate
+  database_url: postgresql://postgres:portway@127.0.0.1:5432/portway
+  store_model_in_db: false       # keep routes in YAML; DB is only for keys
+
+litellm_settings:
+  drop_params: true              # forward-compat: silently drop unknown params

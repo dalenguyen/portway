@@ -1,0 +1,32 @@
+============================================================
+Block 0 — admin mints virtual keys
+============================================================
+full-access key:  …wyzQ  (models: gpt-oss, qwen3.5)
+scoped key:       …sRtg  (models: gpt-oss; rpm=3)
+tpm-test key:     …GHeg  (models: gpt-oss; tpm=200)
+
+============================================================
+Block 1 — /v1/models reflects per-key scope
+============================================================
+full-access   -> ['gpt-oss', 'qwen3.5']
+scoped        -> ['gpt-oss']
+
+============================================================
+Block 2 — scoped key blocked on out-of-scope model
+============================================================
+status:  403
+body:    {'message': "key not allowed to access model. This key can only access models=['gpt-oss']. Tried to access qwen3.5", 'type': 'key_model_access_denied', 'param': 'model', 'code': '403'}
+
+============================================================
+Block 3 — RPM limit trips 429
+============================================================
+  request 1: 200
+  request 2: 200
+  request 3: 200
+  request 4: 429 (RateLimitError) — RPM tripped
+
+============================================================
+Block 4 — TPM limit trips 429 (pre-flight estimate)
+============================================================
+status:  429 (RateLimitError) — TPM tripped
+body:    {'message': 'Rate limit exceeded for api_key: 18c19c8d76205f7129a289989433d7f58d22680947fac6ecad56b02456300020. Limit type: tokens. Current limit: 200, Remaining: 200. Limit resets at: 2026-05-31 10:04:41 UTC', 'type': 'None', 'param': 'None', 'code': '429'}
