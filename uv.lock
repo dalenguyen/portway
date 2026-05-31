@@ -6,6 +6,7 @@ members = [
     "1-local-first",
     "2-two-models",
     "3-gateway",
+    "4-auth",
     "portway",
 ]
 
@@ -43,6 +44,23 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "litellm", extras = ["proxy"], specifier = ">=1.50" },
+    { name = "openai", specifier = ">=1.0" },
+]
+
+[[package]]
+name = "4-auth"
+version = "0.1.0"
+source = { virtual = "4-auth" }
+dependencies = [
+    { name = "httpx" },
+    { name = "litellm", extra = ["proxy"] },
+    { name = "openai" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "litellm", extras = ["proxy"], specifier = ">=1.86" },
     { name = "openai", specifier = ">=1.0" },
 ]
 
