@@ -6,6 +6,13 @@ This walkthrough is the concrete, runnable counterpart to Post 3 in [`series.md`
 
 ← Previous: [Post 2 — Two models locally, and the art of placing them](./2%20-%20Two%20models%20locally,%20and%20the%20art%20of%20placing%20them.md) · ⤴ Start of series: [Post 1 — Local-first: a model on your own machine, zero cloud](./1%20-%20Local-first:%20a%20model%20on%20your%20own%20machine,%20zero%20cloud.md)
 
+```mermaid
+flowchart LR
+    Client["OpenAI SDK client"] -->|"sk-portway-local<br/>model field routes"| Gateway["LiteLLM proxy :4000"]
+    Gateway --> GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
 ## What's in this post
 
 - `3-gateway/config.yaml` — LiteLLM proxy config: two routes (`gpt-oss`, `qwen3.5`), one master key, `drop_params` for forward-compatibility.

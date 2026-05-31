@@ -6,6 +6,16 @@ This walkthrough is the concrete, runnable counterpart to Post 4 in [`series.md`
 
 ← Previous: [Post 3 — The gateway: route by model name](./3%20-%20The%20gateway:%20route%20by%20model%20name.md) · ⤴ Start of series: [Post 1 — Local-first: a model on your own machine, zero cloud](./1%20-%20Local-first:%20a%20model%20on%20your%20own%20machine,%20zero%20cloud.md)
 
+```mermaid
+flowchart LR
+    Admin["admin<br/>sk-portway-admin"] -.->|"POST /key/generate"| Gateway
+    CustA["customer A<br/>sk-...full"] -->|"both models"| Gateway
+    CustB["customer B<br/>sk-...scoped<br/>rpm=3 · tpm=200"] -->|"gpt-oss only"| Gateway
+    Gateway["LiteLLM proxy :4000<br/>--host 0.0.0.0"] <-->|"keys, scope, limits"| DB[("Postgres<br/>portway-keystore")]
+    Gateway --> GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
 ## What's in this post
 
 - `4-auth/config.yaml` — extends Post 3's config with `database_url`, `store_model_in_db: false`, and a renamed `master_key` (`sk-portway-admin`) to signal its admin role.

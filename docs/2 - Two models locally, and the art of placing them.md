@@ -6,6 +6,13 @@ This walkthrough is the concrete, runnable counterpart to Post 2 in [`series.md`
 
 ← Previous: [Post 1 — Local-first: a model on your own machine, zero cloud](./1%20-%20Local-first:%20a%20model%20on%20your%20own%20machine,%20zero%20cloud.md)
 
+```mermaid
+flowchart LR
+    Client["OpenAI SDK client"]
+    Client -->|"base_url=:8010"| GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Client -->|"base_url=:8011"| QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
 ## What's in this post
 
 - `2-two-models/start-backends.sh` — launches two `llama-server` processes (one per model) on two ports.

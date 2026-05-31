@@ -32,6 +32,45 @@
                        └──────────────────────────────────────────────┘
 ```
 
+### How the system evolves, post by post
+
+Each post adds one piece. The diagrams below trace that progression — the same shape grown four times.
+
+**Post 1 — one model, one process, one client:**
+```mermaid
+flowchart LR
+    Client["OpenAI SDK client"] -->|"key=sk-local-001"| Backend["llama-server :8010<br/>gpt-oss-20b"]
+```
+
+**Post 2 — second backend on a second port; the client picks the URL:**
+```mermaid
+flowchart LR
+    Client["OpenAI SDK client"]
+    Client -->|"base_url=:8010"| GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Client -->|"base_url=:8011"| QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
+**Post 3 — gateway in front; the client picks the model, not the URL:**
+```mermaid
+flowchart LR
+    Client["OpenAI SDK client"] -->|"sk-portway-local<br/>model field routes"| Gateway["LiteLLM proxy :4000"]
+    Gateway --> GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
+**Post 4 — admin/customer key split, Postgres-backed virtual keys, per-key scoping + rate limits, LAN-reachable:**
+```mermaid
+flowchart LR
+    Admin["admin<br/>sk-portway-admin"] -.->|"POST /key/generate"| Gateway
+    CustA["customer A<br/>sk-...full"] -->|"both models"| Gateway
+    CustB["customer B<br/>sk-...scoped<br/>rpm=3 · tpm=200"] -->|"gpt-oss only"| Gateway
+    Gateway["LiteLLM proxy :4000<br/>--host 0.0.0.0"] <-->|"keys, scope, limits"| DB[("Postgres<br/>portway-keystore")]
+    Gateway --> GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
+Posts 5–13 keep this shape and add: metering (Post 5), client-side conversation state (Post 6), performance characterization (Post 7), containerization (Post 8), cloud deploy (Post 9), residency overlays (Post 10), scaling (Post 11), observability + billing (Post 12), and extending the catalog (Post 13).
+
 Four rules that hold the whole way through:
 1. **Backends are stateless.** History is carried by the client every request; the server's KV/prefix cache makes the repeated prefix cheap, but it's a cache, never state.
 2. **Everything speaks OpenAI `/v1/chat/completions`.** That uniform wire format makes routing, swapping, and extending a config change instead of a rewrite.

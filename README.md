@@ -32,6 +32,44 @@
                        └──────────────────────────────────────────────┘
 ```
 
+<details>
+<summary><strong>How it grows, post by post</strong> (click to expand)</summary>
+
+**Post 1 — one model, one process:**
+```mermaid
+flowchart LR
+    Client["OpenAI SDK client"] -->|"key=sk-local-001"| Backend["llama-server :8010<br/>gpt-oss-20b"]
+```
+
+**Post 2 — second backend on a second port; client picks the URL:**
+```mermaid
+flowchart LR
+    Client["OpenAI SDK client"]
+    Client -->|"base_url=:8010"| GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Client -->|"base_url=:8011"| QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
+**Post 3 — gateway in front; client picks the model, not the URL:**
+```mermaid
+flowchart LR
+    Client["OpenAI SDK client"] -->|"sk-portway-local<br/>model field routes"| Gateway["LiteLLM proxy :4000"]
+    Gateway --> GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
+**Post 4 — admin/customer key split, Postgres-backed virtual keys, per-key scoping + rate limits, LAN-reachable:**
+```mermaid
+flowchart LR
+    Admin["admin<br/>sk-portway-admin"] -.->|"POST /key/generate"| Gateway
+    CustA["customer A<br/>sk-...full"] -->|"both models"| Gateway
+    CustB["customer B<br/>sk-...scoped<br/>rpm=3 · tpm=200"] -->|"gpt-oss only"| Gateway
+    Gateway["LiteLLM proxy :4000<br/>--host 0.0.0.0"] <-->|"keys, scope, limits"| DB[("Postgres<br/>portway-keystore")]
+    Gateway --> GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+```
+
+</details>
+
 ## Quickstart
 
 ```bash
