@@ -154,6 +154,8 @@ Two caveats worth front-loading before you point real tooling at this:
 - **`0.0.0.0` means everyone on your LAN can call it.** The virtual keys gate model access, but not network access. If your WiFi includes untrusted devices, bind to a specific interface or put the box behind a firewall before sharing keys.
 - **The honest throughput number is a Post 7 concern, not Post 4's.** This block is an opportunistic measurement — sample of 12, no concurrency, no streaming — useful for sanity but not benchmarking. Post 7 formalizes TTFT, p95, and load characterization.
 
+**Back-edit to Post 2.** Real chat clients send prompts well past Post 2's original `--ctx-size 8192` (the 12-request sample above included one 17,646-token prompt). Both `llama-server` invocations in `2-two-models/start-backends.sh` were bumped to `--ctx-size 131072` (128K, native max for both models) so the gateway can actually forward what clients send. Heads-up: 128K KV cache × 4 default slots × 2 co-located models is roughly 40 GB of memory in flight — fine on a 48 GB box, OOM on a 16 GB one. If you're on tighter hardware, pick a smaller number (32K covers most real prompts) or drop `--parallel 1`.
+
 ## What's next
 
 Post 5 adds **metering** on top of this: every request through the gateway produces a row in a metering table (key, model, prompt/completion tokens, cost). The streaming-usage gotcha (`stream_options.include_usage`) lives there. The same Postgres container hosts both the key store (this post) and the metering table — and that's why we picked Postgres over SQLite.

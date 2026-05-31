@@ -42,7 +42,8 @@ fi
 uv run --project . litellm \
   --config config.yaml \
   --port 4000 \
-  --host 127.0.0.1 \
+  # --host 127.0.0.1 \
+  --host 0.0.0.0 \
   >logs/gateway.log 2>&1 &
 echo $! >"$PID_FILE"
 echo "gateway   pid=$(cat $PID_FILE) port=4000 log=logs/gateway.log"

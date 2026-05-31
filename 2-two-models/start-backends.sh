@@ -36,7 +36,7 @@ llama-server \
   --alias gpt-oss \
   --port 8010 \
   --host 127.0.0.1 \
-  --ctx-size 8192 \
+  --ctx-size 131072 \
   --jinja \
   --reasoning-format auto \
   >logs/gpt-oss.log 2>&1 &
@@ -50,7 +50,7 @@ llama-server \
   --alias qwen3.5 \
   --port 8011 \
   --host 127.0.0.1 \
-  --ctx-size 8192 \
+  --ctx-size 131072 \
   --jinja \
   --reasoning-format auto \
   >logs/qwen3.5.log 2>&1 &
