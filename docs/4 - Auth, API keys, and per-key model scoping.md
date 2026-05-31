@@ -2,7 +2,7 @@
 
 > Goal: turn the Post-3 gateway into a service. Mint customer-facing virtual keys backed by a real key store, each scoped to a subset of models and rate-limited on both requests/min and tokens/min. Still local, still $0.
 
-This walkthrough is the concrete, runnable counterpart to Post 4 in [`series.md`](./series.md). The line between "my toy" and "a service" — and it's still entirely local.
+This walkthrough is the concrete, runnable counterpart to Post 4 in [`series.md`](./series.md). It crosses the line between "my toy" and "a service" — and it's still entirely local.
 
 ← Previous: [Post 3 — The gateway: route by model name](./3%20-%20The%20gateway:%20route%20by%20model%20name.md) · ⤴ Start of series: [Post 1 — Local-first: a model on your own machine, zero cloud](./1%20-%20Local-first:%20a%20model%20on%20your%20own%20machine,%20zero%20cloud.md)
 
