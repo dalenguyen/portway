@@ -68,6 +68,20 @@ flowchart LR
     Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
 ```
 
+**Post 5 — gateway captures per-request usage to two tables; rows survive restarts:**
+```mermaid
+flowchart LR
+    Customer["customer<br/>sk-...metering-demo"] -->|"chat/completions"| Gateway
+    Gateway["LiteLLM proxy :4000<br/>+ portway_meter (CustomLogger)"] --> GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+    Gateway -->|"built-in batched writer"| Spend[("LiteLLM_SpendLogs")]
+    Gateway -->|"async_log_success_event"| Meter[("portway_metering")]
+    subgraph PG["Postgres container · -v ./pgdata:/var/lib/postgresql/data"]
+      Spend
+      Meter
+    end
+```
+
 </details>
 
 ## Quickstart
@@ -93,7 +107,7 @@ Built step-by-step — check each post off as it ships.
 - [x] [**Post 2** — Two models locally, and the art of placing them](./docs/2%20-%20Two%20models%20locally,%20and%20the%20art%20of%20placing%20them.md) *(no cloud · $0)*
 - [x] [**Post 3** — The gateway: route by model name](./docs/3%20-%20The%20gateway:%20route%20by%20model%20name.md) *(no cloud · $0)*
 - [x] [**Post 4** — Auth, API keys, and per-key model scoping](./docs/4%20-%20Auth,%20API%20keys,%20and%20per-key%20model%20scoping.md) *(no cloud · $0)*
-- [ ] **Post 5** — Token tracking & metering *(no cloud · $0)*
+- [x] [**Post 5** — Token tracking & metering](./docs/5%20-%20Token%20tracking%20&%20metering.md) *(no cloud · $0)*
 - [ ] **Post 6** — Conversation state & context management *(no cloud · $0)*
 - [ ] **Post 7** — Streaming, performance & load *(no cloud · $0)*
 - [ ] **Post 8** — Containerize & make deployment location-agnostic *(no cloud · $0)*

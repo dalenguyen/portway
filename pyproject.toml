@@ -5,4 +5,4 @@ description = "Self-hosted, run-anywhere gateway for local LLMs (build-along ser
 requires-python = ">=3.11,<3.14"
 
 [tool.uv.workspace]
-members = ["1-local-first", "2-two-models", "3-gateway", "4-auth"]
+members = ["1-local-first", "2-two-models", "3-gateway", "4-auth", "5-metering"]
