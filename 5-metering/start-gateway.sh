@@ -26,6 +26,15 @@ if [[ "${1:-}" == "stop" ]]; then
   exit 0
 fi
 
+# Refuse to start when the saved gateway PID is still live — port 4000 is
+# already taken and a second launch would overwrite the pid file, leaving
+# `stop` unable to target the original process.
+if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+  echo "gateway already running (pid=$(cat "$PID_FILE"))"
+  exit 0
+fi
+rm -f "$PID_FILE"
+
 # Refuse to start without the keystore — LiteLLM's schema migration on first boot
 # produces a confusing error otherwise. Same guard as Post 4.
 if ! docker exec portway-keystore pg_isready -U postgres -d portway >/dev/null 2>&1; then

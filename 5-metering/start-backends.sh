@@ -30,6 +30,16 @@ if [[ "${1:-}" == "stop" ]]; then
   exit 0
 fi
 
+# Refuse to start when a saved PID is still live — otherwise we overwrite the
+# pid file and `stop` loses track of the original processes.
+for f in "$PID_FILE_GPT" "$PID_FILE_QWEN"; do
+  if [[ -f "$f" ]] && kill -0 "$(cat "$f")" 2>/dev/null; then
+    echo "backend already running (pid=$(cat "$f"))"
+    exit 0
+  fi
+  rm -f "$f"
+done
+
 # Backend 1 — gpt-oss-20b (MXFP4 native) on :8010
 llama-server \
   -hf ggml-org/gpt-oss-20b-GGUF \

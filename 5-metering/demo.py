@@ -31,20 +31,20 @@ def banner(title: str) -> None:
 def mint_key() -> str:
     banner("Block 0 — admin mints a metering-demo key")
     run_id = uuid.uuid4().hex[:8]
-    admin = httpx.Client(
+    with httpx.Client(
         base_url=GATEWAY_URL,
         headers={"Authorization": f"Bearer {MASTER_KEY}"},
         timeout=10.0,
-    )
-    r = admin.post("/key/generate", json={
-        "models": ["gpt-oss", "qwen3.5"],
-        "rpm_limit": 60,
-        "tpm_limit": 100_000,
-        "duration": "1h",
-        "key_alias": f"metering-demo-{run_id}",
-    })
-    r.raise_for_status()
-    key = r.json()["key"]
+    ) as admin:
+        r = admin.post("/key/generate", json={
+            "models": ["gpt-oss", "qwen3.5"],
+            "rpm_limit": 60,
+            "tpm_limit": 100_000,
+            "duration": "1h",
+            "key_alias": f"metering-demo-{run_id}",
+        })
+        r.raise_for_status()
+        key = r.json()["key"]
     print(f"metering-demo key: …{key[-4:]}  (models: gpt-oss, qwen3.5)")
     return key
 
@@ -202,7 +202,15 @@ def spendlogs_vs_portway(request_id: str) -> None:
     else:
         print(f"    model={pm[1]}  cost ={float(pm[2]):.8f}  tokens={pm[3]} (in={pm[4]}, out={pm[5]})")
     if sl is not None and pm is not None:
-        agree = (sl[3] == pm[3] and abs(float(sl[2]) - float(pm[2])) < 1e-10)
+        # Compare totals, both subcounts, and cost. The post is explicitly
+        # demonstrating completion-token accuracy for streaming, so a mismatched
+        # prompt/completion split with a matching total would be a false-positive.
+        agree = (
+            sl[3] == pm[3]
+            and sl[4] == pm[4]
+            and sl[5] == pm[5]
+            and abs(float(sl[2]) - float(pm[2])) < 1e-10
+        )
         print()
         print(f"  agreement: {'matched (tokens + cost)' if agree else 'DIVERGENT — investigate'}")
 
