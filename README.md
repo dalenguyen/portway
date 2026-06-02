@@ -82,6 +82,20 @@ flowchart LR
     end
 ```
 
+**Post 6 — app-side thread store; gateway unchanged; backends stay stateless:**
+```mermaid
+flowchart LR
+    Customer["customer<br/>sk-...threads-demo"] -->|"chat/completions<br/>messages[] = system + history + user"| Gateway
+    Gateway["LiteLLM proxy :4000<br/>(same as Post 5)"] --> GPT["llama-server :8010<br/>gpt-oss-20b"]
+    Gateway --> QWEN["llama-server :8011<br/>Qwen3.5-9B"]
+    Gateway -->|"meter row per call"| Meter[("portway_metering")]
+    Customer -.->|"thread_store.assemble()<br/>thread_store.append_message()"| Threads
+    subgraph PG["Postgres container · same volume mount"]
+      Meter
+      Threads[("portway_threads<br/>portway_messages")]
+    end
+```
+
 </details>
 
 ## Quickstart
@@ -108,7 +122,7 @@ Built step-by-step — check each post off as it ships.
 - [x] [**Post 3** — The gateway: route by model name](./docs/3%20-%20The%20gateway:%20route%20by%20model%20name.md) *(no cloud · $0)*
 - [x] [**Post 4** — Auth, API keys, and per-key model scoping](./docs/4%20-%20Auth,%20API%20keys,%20and%20per-key%20model%20scoping.md) *(no cloud · $0)*
 - [x] [**Post 5** — Token tracking & metering](./docs/5%20-%20Token%20tracking%20&%20metering.md) *(no cloud · $0)*
-- [ ] **Post 6** — Conversation state & context management *(no cloud · $0)*
+- [x] [**Post 6** — Conversation state & context management](./docs/6%20-%20Conversation%20state%20&%20context%20management.md) *(no cloud · $0)*
 - [ ] **Post 7** — Streaming, performance & load *(no cloud · $0)*
 - [ ] **Post 8** — Containerize & make deployment location-agnostic *(no cloud · $0)*
 - [ ] **Post 9** — Deploy to a cloud — any provider, any region *(optional · rental)*

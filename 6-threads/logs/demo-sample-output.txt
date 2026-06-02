@@ -1,0 +1,97 @@
+============================================================
+Block 0 — admin mints a threads-demo key
+============================================================
+threads-demo key: …-dWA  (models: gpt-oss, qwen3.5)
+
+============================================================
+Block 1 — 10-turn chat; prompt_tokens grow because we resend history
+============================================================
+  thread_id: thr-trip-dbbb5231
+
+  turn  prompt_tok   compl_tok  reply (first 60 chars)                                      
+     1         116          65  Hi!                                                         
+     2         142         259  Consider British Columbia for its Pacific Coast and Okanagan
+     3         193          74  Don’t miss Montreal for its vibrant culture and Quebec City 
+     4         235         166  Try poutine—crispy fries topped with cheese curds and rich b
+     5         272         122  About 11 °C average (high ≈ 15 °C, low ≈ 7 °C).             
+     6         312          65  Stay in the Plateau‑Mont-Royal. It’s lively, pedestrian‑frie
+     7         361         103  English is widely spoken in Montreal, especially in tourist 
+     8         407          84  Take a scenic bike ride along the Lachine Canal—autumn color
+     9         454         148  Head to Mont Tremblant (≈ 1 h drive). Walk the old village, 
+    10         518          62  You mentioned traveling in **October**.                     
+
+  *** prompt_tokens grows each turn because we resend the whole history.
+      If the server held a session, prompt_tokens would stay roughly flat.
+      Block 2's cold thread is the negative control: same question with no
+      history sent shows the model can't recover the earlier context.
+
+============================================================
+Block 2 — prefix cache + stateless control: warm vs cold same probe
+============================================================
+  probe: 'Recap our plan in one sentence.'
+
+                            cold thread    warm thread
+  prompt_tokens                     111            544
+  cached_tokens                      96            519
+  ttft                            212ms          297ms
+  total_latency                   3139ms          5309ms
+
+  cold reply: 'I don’t have a plan to recap based on the information shared.'
+  warm reply: 'In October, you’ll spend 10 days in Montreal, staying in the Plateau, enjoying poutine, biking the Lachine Canal, and ta'
+
+  *** Two readings in one block:
+      • Cache: warm cached_tokens >> cold cached_tokens — the 10-turn
+        prefix is reused; the cold thread only shares the system bytes.
+      • Stateless: cold can't recap a plan it was never told. The server
+        kept nothing between threads.
+
+============================================================
+Block 3 — 50-turn thread, truncate to fit budget=800
+============================================================
+  full thread in DB:           50 messages, ~3611 tokens
+  budget (OVERFLOW_BUDGET):    800 tokens (minus 512 reserve)
+  assembled (truncate):        4 messages (system + 2 recent + new user)
+  call prompt_tokens:          233
+  reply:                       **Ontario** – vibrant hockey culture, iconic arenas like Maple Leaf Gardens, easy travel routes, and welcoming for first‑time visitors.
+
+  *** Naive 'send everything' would have shipped the full thread.
+      assemble(truncate) kept only the most-recent pairs that fit.
+
+============================================================
+Block 4 — same 50-turn shape, but summarize older turns via qwen3.5
+============================================================
+  summary call request_id:  chatcmpl-SMzGwsDFECWMLA95LRrHIqTh0OhwXqH2
+  summary tokens:           in=2377 out=800
+  summary (stored):         Thinking Process:
+
+1.  **Analyze the Request:**
+    *   Task: Compress the provided conversation into 4 short bullet points.
+    *   Constraint 1: Preserve the user's preferences.
+    *   Constraint 2…
+  assembled (summarize):    4 messages (system×2 + user×1 + assistant×1)
+  call prompt_tokens:       208
+  reply:                    **Ontario** – easy access, vibrant cities (Toronto), natural parks (Niagara, Algonquin), cultural mix, and beginner‑friendly attractions make it ideal for first
+
+  *** The summary lives in portway_threads.summary; assemble() injects
+      it as a second system message. The summarization call itself
+      produced a portway_metering row — see Block 5.
+
+============================================================
+Block 5 — thread persistence + metering tie-in
+============================================================
+  threads owned by this run's key hash (692de91d8cd2ccfa):
+  thread_id                 msgs summary?                 created_at
+  thr-trip-dbbb5231           22       no        2026-06-02 04:20:11
+  thr-cold-950109d7            2       no        2026-06-02 04:20:40
+  thr-50turn-6877b4ef         52       no        2026-06-02 04:20:43
+  thr-50sum-9e9e6d51          52      yes        2026-06-02 04:20:48
+
+  most recent qwen3.5 metering row (from Block 4's summarize call):
+    request_id:        chatcmpl-SMzGwsDFECWMLA95LRrHIqTh0OhwXqH2
+    public_model:      qwen3.5
+    prompt_tokens:     2377
+    completion_tokens: 800
+    computed_cost:     $0.00032040
+
+  threads persist across `docker restart portway-keystore` because
+  pgdata is volume-mounted (carried over from Post 5).

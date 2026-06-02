@@ -1,0 +1,29 @@
+# Post 6 — same gateway config as Post 5. The gateway has no opinion on threads;
+# the new `portway_threads` / `portway_messages` tables are written by demo.py
+# directly against Postgres. Metering callback stays on so summarization calls
+# in Block 4 still produce rows.
+
+model_list:
+  - model_name: gpt-oss
+    litellm_params:
+      model: openai/gpt-oss
+      api_base: http://127.0.0.1:8010/v1
+      api_key: dummy
+      input_cost_per_token: 0.00000015      # $0.15 / 1M tokens (illustrative, from Post 5)
+      output_cost_per_token: 0.00000060     # $0.60 / 1M tokens
+  - model_name: qwen3.5
+    litellm_params:
+      model: openai/qwen3.5
+      api_base: http://127.0.0.1:8011/v1
+      api_key: dummy
+      input_cost_per_token: 0.00000010      # $0.10 / 1M tokens
+      output_cost_per_token: 0.00000040     # $0.40 / 1M tokens
+
+general_settings:
+  master_key: sk-portway-admin
+  database_url: postgresql://postgres:portway@127.0.0.1:5432/portway
+  store_model_in_db: false
+
+litellm_settings:
+  drop_params: true
+  callbacks: ["portway_callback.portway_meter"]
