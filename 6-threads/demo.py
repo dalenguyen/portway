@@ -326,7 +326,7 @@ def truncate_overflow(key: str, key_hash: str) -> str:
 # ---- Block 4 — overflow via summarization (gateway call to qwen3.5) ------
 
 def summarize_overflow(key: str, key_hash: str) -> str:
-    banner(f"Block 4 — same 50-turn shape, but summarize older turns via qwen3.5")
+    banner("Block 4 — same 50-turn shape, but summarize older turns via qwen3.5")
     c = OpenAI(base_url=f"{GATEWAY_URL}/v1", api_key=key, max_retries=0)
     tid = f"thr-50sum-{uuid.uuid4().hex[:8]}"
     synthesize_50_turn_thread(key_hash, tid)
@@ -436,8 +436,8 @@ def persistence_and_listing(summarize_thread_id: str, key_hash: str) -> None:
     print(f"    completion_tokens: {row[3]}")
     print(f"    computed_cost:     ${float(row[4]):.8f}")
     print()
-    print(f"  threads persist across `docker restart portway-keystore` because")
-    print(f"  pgdata is volume-mounted (carried over from Post 5).")
+    print("  threads persist across `docker restart portway-keystore` because")
+    print("  pgdata is volume-mounted (carried over from Post 5).")
 
 
 if __name__ == "__main__":
