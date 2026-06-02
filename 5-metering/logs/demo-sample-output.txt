@@ -1,0 +1,72 @@
+
+============================================================
+Block 0 — admin mints a metering-demo key
+============================================================
+metering-demo key: …zNoA  (models: gpt-oss, qwen3.5)
+
+============================================================
+Block 1 — non-streamed request → metering row
+============================================================
+  request_id: chatcmpl-RTlHGd7K2XjsF5gi1bnQS6kSlSGdBdlU
+  usage:      {'completion_tokens': 20, 'prompt_tokens': 72, 'total_tokens': 92, 'completion_tokens_details': None, 'prompt_tokens_details': {'audio_tokens': None, 'cached_tokens': 60}}
+  public_model       gpt-oss
+  prompt_tokens      72
+  completion_tokens  20
+  total_tokens       92
+  computed_cost      0.00001380
+  status             success
+  total_latency_ms   437
+
+============================================================
+Block 2 — streaming WITHOUT include_usage → the BUG
+============================================================
+  request_id:    chatcmpl-hZXccddAnNYHWDBiDhFyt4ZclR1xQLEp
+  chunks_seen:   29
+  content:       ''
+  usage in any chunk?  no  (we never asked for it)
+  metering row this produced:
+  public_model       gpt-oss
+  prompt_tokens      11
+  completion_tokens  0
+  total_tokens       11
+  computed_cost      0.00001785
+  status             success
+  total_latency_ms   583
+
+  *** zero-billed stream — this is the trap. ***
+  Fix in Block 3: stream_options={'include_usage': True}
+
+============================================================
+Block 3 — streaming WITH include_usage → the FIX
+============================================================
+  request_id:    chatcmpl-CA3EgnuNNa3c4PHD9EG8O34jfqt8CVOI
+  chunks_seen:   30
+  content:       ''
+  final usage:   {'completion_tokens': 30, 'prompt_tokens': 71, 'total_tokens': 101, 'completion_tokens_details': {'accepted_prediction_tokens': None, 'audio_tokens': None, 'reasoning_tokens': 27, 'rejected_prediction_tokens': None}, 'prompt_tokens_details': {'audio_tokens': None, 'cached_tokens': 60}}
+  metering row this produced:
+  public_model       gpt-oss
+  prompt_tokens      71
+  completion_tokens  30
+  total_tokens       101
+  computed_cost      0.00001965
+  status             success
+  total_latency_ms   584
+
+============================================================
+Block 4 — LiteLLM_SpendLogs vs portway_metering agree
+============================================================
+  comparing request_id: chatcmpl-CA3EgnuNNa3c4PHD9EG8O34jfqt8CVOI
+  waiting for SpendLogs batch flush ...
+
+  LiteLLM_SpendLogs:
+    model=openai/gpt-oss  spend=0.00001965  tokens=101 (in=71, out=30)
+  portway_metering:
+    model=gpt-oss  cost =0.00001965  tokens=101 (in=71, out=30)
+
+  agreement: matched (tokens + cost)
+
+============================================================
+Block 5 — spend grouped by key + model
+============================================================
+  api_key_hash       model       reqs   tokens        spend
+  0c8d405242687615   gpt-oss        3      204 $ 0.00005130
